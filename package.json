@@ -1,0 +1,57 @@
+{
+  "name": "stabilize-cli",
+  "version": "1.0.1",
+  "description": "The official command-line interface for the Stabilize ORM",
+  "author": "ElectronSz <lwazicd@icloud.com>",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "stabilize": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun build ./index.ts --outdir ./dist --target bun --minify",
+    "prepublishOnly": "bun run build",
+    "dev": "bun run --watch index.ts",
+    "format": "bunx prettier --write .",
+    "lint": "bunx eslint ."
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "glob": "^10.4.1",
+    "stabilize-orm": "^1.1.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^9.4.0",
+    "prettier": "^3.3.2",
+    "typescript": "^5.4.5"
+  },
+  "keywords": [
+    "orm",
+    "cli",
+    "database",
+    "migrations",
+    "seeding",
+    "bun",
+    "stabilize"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ElectronSz/stabilize-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ElectronSz/stabilize-cli/issues"
+  },
+  "homepage": "https://github.com/ElectronSz/stabilize-cli#readme",
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
