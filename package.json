@@ -23,16 +23,17 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "glob": "^10.4.1",
-    "stabilize-orm": "^1.1.4"
+    "dotenv": "^17.2.3",
+    "glob": "^10.4.5",
+    "stabilize-orm": "^1.1.7"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@typescript-eslint/eslint-plugin": "^7.13.0",
-    "@typescript-eslint/parser": "^7.13.0",
-    "eslint": "^9.4.0",
-    "prettier": "^3.3.2",
-    "typescript": "^5.4.5"
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^9.37.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "orm",

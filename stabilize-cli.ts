@@ -8,14 +8,15 @@
 import 'reflect-metadata';
 
 import { program } from "commander";
-import { generateMigration, runMigrations, Stabilize, ModelKey, DBClient } from "stabilize-orm";
+import { generateMigration, runMigrations, Stabilize, ModelKey } from "stabilize-orm";
 import { LogLevel, type DBConfig, type LoggerConfig, DBType, type Migration } from "stabilize-orm/types";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { glob } from "glob";
 import readline from "readline";
+import figlet from "figlet";
 
-// --- CLI UI Toolkit ---
+
 const C = {
   RESET: "\x1b[0m", BRIGHT: "\x1b[1m", DIM: "\x1b[2m",
   RED: "\x1b[31m", GREEN: "\x1b[32m", YELLOW: "\x1b[33m", BLUE: "\x1b[34m",
@@ -23,6 +24,7 @@ const C = {
   BG_GREEN: "\x1b[42m\x1b[30m", BG_RED: "\x1b[41m\x1b[37m", BG_YELLOW: "\x1b[43m\x1b[30m",
 };
 
+const version = " 1.0.1"
 const CLILogger = {
   info: (message: string) => console.log(`${C.BLUE}ℹ${C.RESET} ${message}`),
   success: (message: string) => console.log(`${C.GREEN}✔${C.RESET} ${C.GREEN}${message}${C.RESET}`),
@@ -55,7 +57,24 @@ const spinner = {
   },
 };
 
-// --- Core CLI Logic ---
+
+function displayBanner() {
+  console.log(
+    C.CYAN +
+    figlet.textSync('Stabilize CLI', {
+      font: 'Standard',
+      horizontalLayout: 'default',
+      verticalLayout: 'default',
+      width: 80,
+      whitespaceBreak: true,
+    }) +
+    C.RESET
+  );
+  console.log(`  ${C.BRIGHT}Version:${C.RESET} ${C.YELLOW}${version}${C.RESET}`);
+  console.log(`  ${C.BRIGHT}Developed by:${C.RESET} ${C.CYAN}ElectronSz${C.RESET}`);
+  console.log(C.DIM + '----------------------------------------------------\n' + C.RESET);
+}
+
 
 async function loadConfig(configPath: string): Promise<{ config: DBConfig; orm: Stabilize }> {
   try {
@@ -79,6 +98,10 @@ async function confirm(question: string): Promise<boolean> {
       resolve(answer.toLowerCase() === 'y');
     });
   });
+}
+
+if (process.argv.length <= 2 || process.argv.includes('--help') || process.argv.includes('-h')) {
+    displayBanner();
 }
 
 // --------------------------------------------------------------------------------------------------
@@ -112,24 +135,24 @@ program
         await fs.mkdir(modelDir, { recursive: true });
         const filePath = path.join(modelDir, `${name}.ts`);
         const content = `
-              import 'reflect-metadata';
-              import { Model, Column, DataTypes } from 'stabilize-orm';
+import 'reflect-metadata';
+import { Model, Column, DataTypes } from 'stabilize-orm';
 
-              @Model('${name.toLowerCase()}s')
-              export class ${capitalizedName} {
-                @Column({ type: DataTypes.INTEGER, name: 'id' })
-                id!: number;
+@Model('${name.toLowerCase()}s')
+export class ${capitalizedName} {
+@Column({ type: DataTypes.INTEGER, name: 'id' })
+id!: number;
 
-                @Column({ type: DataTypes.STRING, length: 100 })
-                name!: string;
+@Column({ type: DataTypes.STRING, length: 100 })
+name!: string;
 
-                @Column({ type: DataTypes.DATETIME, name: 'created_at' })
-                createdAt!: Date;
+@Column({ type: DataTypes.DATETIME, name: 'created_at' })
+createdAt!: Date;
 
-                @Column({ type: DataTypes.DATETIME, name: 'updated_at' })
-                updatedAt!: Date;
-              }
-          `.trim() + "\n";
+@Column({ type: DataTypes.DATETIME, name: 'updated_at' })
+updatedAt!: Date;
+}
+`.trim() + "\n";
         await fs.writeFile(filePath, content);
         CLILogger.success(`Model generated: ${filePath}`);
       } else if (type === "seed") {
@@ -139,22 +162,22 @@ program
         const fileName = `${timestamp}_${name}.ts`;
         const filePath = path.join(seedDir, fileName);
         const content = `
-            import { Stabilize } from 'stabilize-orm';
-            import { ${capitalizedName} } from './models/${name}';
+import { Stabilize } from 'stabilize-orm';
+import { ${capitalizedName} } from '../models/${name}';
 
-            export const dependencies: string[] = [];
+export const dependencies: string[] = [];
 
-            export async function seed(orm: Stabilize): Promise<void> {
-              const repo = orm.getRepository(${capitalizedName});
-              await repo.bulkCreate([
-                { name: '${capitalizedName} One' },
-                { name: '${capitalizedName} Two' },
-              ]);
-            }
+export async function seed(orm: Stabilize): Promise<void> {
+const repo = orm.getRepository(${capitalizedName});
+await repo.bulkCreate([
+  { name: '${capitalizedName} one' },
+  { name: '${capitalizedName} two' },
+]);
+}
 
-            export async function rollback(orm: Stabilize): Promise<void> {
-              await orm.client.query('DELETE FROM ${name.toLowerCase()}s WHERE name LIKE ?', ['${capitalizedName} %']);
-            }
+export async function rollback(orm: Stabilize): Promise<void> {
+await orm.client.query('DELETE FROM ${name.toLowerCase()}s WHERE name LIKE ?', ['${capitalizedName} %']);
+}
       `.trim() + "\n";
         await fs.writeFile(filePath, content);
         CLILogger.success(`Seed generated: ${filePath}`);
@@ -260,7 +283,8 @@ program
             for (const seedName of pendingSeeds) {
                 const mod = await import(graph.get(seedName)!.file);
                 await orm.transaction(async (txClient) => {
-                    const txOrm = new Stabilize(orm!.client.config, { enabled: false, ttl: 60 }, { level: LogLevel.Error }, txClient);
+                    const txOrm = new Stabilize(orm!.client.config, { enabled: false, ttl: 60 }, { level: LogLevel.Error });
+                    (txOrm as any).client = txClient; // Use the transactional client
                     await mod.seed(txOrm);
                     await txClient.query(`INSERT INTO seed_history (name, applied_at) VALUES (?, ?)`, [seedName, new Date().toISOString()]);
                 });
@@ -296,6 +320,7 @@ program
             }
             await orm.transaction(async (txClient) => {
                 const txOrm = new Stabilize(orm!.client.config, { enabled: false, ttl: 60 }, { level: LogLevel.Error });
+                (txOrm as any).client = txClient; // Use the transactional client
                 await mod.rollback(txOrm);
                 await txClient.query(`DELETE FROM seed_history WHERE name = ?`, [latest.name]);
             });
