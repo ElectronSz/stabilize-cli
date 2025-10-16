@@ -141,23 +141,46 @@ program
         const modelDir = path.resolve(process.cwd(), "models");
         await fs.mkdir(modelDir, { recursive: true });
         const filePath = path.join(modelDir, `${name}.ts`);
-        const content = `
+const content = `
 import 'reflect-metadata';
-import { Model, Column, DataTypes } from 'stabilize-orm';
+import { Model, Column, DataTypes, SoftDelete, Versioned, Hook } from 'stabilize-orm';
 
 @Model('${name.toLowerCase()}s')
+@Versioned()
 export class ${capitalizedName} {
-@Column({ type: DataTypes.INTEGER, name: 'id' })
-id!: number;
+  @Column({ type: DataTypes.INTEGER, name: 'id' })
+  id!: number;
 
-@Column({ type: DataTypes.STRING, length: 100 })
-name!: string;
+  @Column({ type: DataTypes.STRING, length: 150})
+  name!: string;
 
-@Column({ type: DataTypes.DATETIME, name: 'created_at' })
-createdAt!: Date;
+  @Column({type: DataTypes.BOOLEAN, name: 'active'})
+  active!: boolean;
 
-@Column({ type: DataTypes.DATETIME, name: 'updated_at' })
-updatedAt!: Date;
+  @Column({ type: DataTypes.DATETIME, name: 'created_at' })
+  createdAt!: Date;
+
+  @Column({ type: DataTypes.DATETIME, name: 'updated_at' })
+  updatedAt!: Date;
+
+  @Column({ type: DataTypes.DATETIME, name: 'deleted_at' })
+  @SoftDelete()
+  deletedAt?: Date;
+
+  @Hook('beforeCreate')
+  setCreatedAt() {
+    this.createdAt = new Date();
+  }
+
+  @Hook('beforeUpdate')
+  setUpdatedAt() {
+    this.updatedAt = new Date();
+  }
+
+  @Hook('afterCreate')
+  logCreate() {
+    console.log(\`${capitalizedName} created: \${this.id}\`);
+  }
 }
 `.trim() + "\n";
         await fs.writeFile(filePath, content);
@@ -228,6 +251,8 @@ program
     }
   });
 
+
+  
 program
   .command("migrate:rollback")
   .description("Roll back the most recently applied migration.")

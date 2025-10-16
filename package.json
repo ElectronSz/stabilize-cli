@@ -25,7 +25,7 @@
     "commander": "^12.1.0",
     "dotenv": "^17.2.3",
     "glob": "^10.4.5",
-    "stabilize-orm": "^1.1.8"
+    "stabilize-orm": "^1.2.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
