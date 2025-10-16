@@ -1,6 +1,6 @@
 {
   "name": "stabilize-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "The official command-line interface for the Stabilize ORM",
   "author": "ElectronSz <lwazicd@icloud.com>",
   "license": "MIT",

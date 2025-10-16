@@ -55,7 +55,7 @@ The Stabilize CLI is designed to work within a project that has `stabilize-orm` 
 
 ## 💻 Commands
 
-All commands are run using the `stabilize` executable.
+All commands are run using the `stabilize-cli` executable.
 
 | Command                            | Description                                                                 |
 | ---------------------------------- | --------------------------------------------------------------------------- |
@@ -74,37 +74,37 @@ All commands are run using the `stabilize` executable.
 
 **Generating a new `Product` model (with hooks, versioning, and soft delete):**
 ```bash
-stabilize generate model Product
+stabilize-cli generate model Product
 # ✔ Success: Model generated: models/Product.ts
 ```
 
 **Generating a migration from the `Product` model:**
 ```bash
-stabilize generate migration Product
+stabilize-cli generate migration Product
 # ✔ Success: Migration generated: migrations/20251015200737_create_product_table.json
 ```
 
 
 **Generating a seed from the `Product` model:**
 ```bash
-stabilize generate seed Product
-# ✔ Success: Seed generated: seeds/20251015200737_User.ts
+stabilize-cli generate seed Product
+# ✔ Success: Seed generated: seeds/20251015200737_Product.ts
 ```
 
 **Applying all pending migrations:**
 ```bash
-stabilize migrate
+stabilize-cli migrate
 # ✔ Migrations applied successfully.
 ```
 
 **Applying all pending seeds:**
 ```bash
-stabilize seed
+stabilize-cli seed
 # ✔ Seeds applied successfully.
 ```
 **Checking the status of your database:**
 ```bash
-stabilize status
+stabilize-cli status
 
 # Migration Status
 # ---------------------------------
