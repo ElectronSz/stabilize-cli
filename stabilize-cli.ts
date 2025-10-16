@@ -24,7 +24,7 @@ const C = {
   BG_GREEN: "\x1b[42m\x1b[30m", BG_RED: "\x1b[41m\x1b[37m", BG_YELLOW: "\x1b[43m\x1b[30m",
 };
 
-const version = " 1.0.1"
+const version = " 1.0.2"
 const CLILogger = {
   info: (message: string) => console.log(`${C.BLUE}ℹ${C.RESET} ${message}`),
   success: (message: string) => console.log(`${C.GREEN}✔${C.RESET} ${C.GREEN}${message}${C.RESET}`),
@@ -80,16 +80,23 @@ async function loadConfig(configPath: string): Promise<{ config: DBConfig; orm: 
   try {
     const absoluteConfigPath = path.resolve(process.cwd(), configPath);
     const configModule = await import(absoluteConfigPath);
-    const config: DBConfig = configModule.default || configModule;
+    const config: DBConfig = configModule.dbConfig || configModule.default || configModule;
     const logLevelKey = program.opts().logLevel as keyof typeof LogLevel;
     const loggerConfig: LoggerConfig = { level: LogLevel[logLevelKey] };
     const orm = new Stabilize(config, { enabled: false, ttl: 60 }, loggerConfig);
     return { config, orm };
   } catch (error) {
-    throw new Error(`Failed to load database configuration from '${configPath}'. Make sure the file exists and is valid.`);
+    throw new Error(`Failed to load database configuration from '${configPath}'. Error: ${error}`);
   }
 }
 
+function formatQuery(query: string, dbType: string): string {
+  if (dbType === "postgres") {
+    let paramIndex = 0;
+    return query.replace(/\?/g, () => `$${++paramIndex}`);
+  }
+  return query;
+}
 async function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
@@ -231,7 +238,7 @@ program
       const { orm: loadedOrm } = await loadConfig(options.config);
       orm = loadedOrm;
       spinner.start("Rolling back last migration...");
-      const [latest] = await orm.client.query<{ name: string }>(`SELECT name FROM migrations ORDER BY applied_at DESC, name DESC LIMIT 1`);
+      const [latest] = await orm.client.query<{ name: string }>(`SELECT name FROM stabilize_migrations ORDER BY applied_at DESC, name DESC LIMIT 1`);
       if (!latest) {
         spinner.stop(false, "No migrations to roll back.");
         return;
@@ -240,7 +247,7 @@ program
       const migration: Migration = JSON.parse(await fs.readFile(migrationFile, 'utf-8'));
       await orm.transaction(async (txClient) => {
         for (const query of migration.down) await txClient.query(query);
-        await txClient.query(`DELETE FROM migrations WHERE name = ?`, [latest.name]);
+        await txClient.query(`DELETE FROM stabilize_migrations WHERE name = ?`, [latest.name]);
       });
       spinner.stop(true, `Rolled back: ${latest.name}`);
     } catch (error) {
@@ -250,7 +257,6 @@ program
       if (orm) await orm.close();
     }
   });
-
 // --------------------------------------------------------------------------------------------------
 // COMMANDS: SEED & ROLLBACK
 // --------------------------------------------------------------------------------------------------
@@ -260,43 +266,58 @@ program
     .option("-c, --config <path>", "Path to db config file", "config/database.ts")
     .action(async (options) => {
         let orm: Stabilize | null = null;
+        let seedDir;
         try {
             const { orm: loadedOrm } = await loadConfig(options.config);
             orm = loadedOrm;
-            await orm.client.query(`CREATE TABLE IF NOT EXISTS seed_history (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)`);
-            const seedDir = path.resolve(process.cwd(), "seeds");
+            await orm.client.query(`CREATE TABLE IF NOT EXISTS stabilize_seed_history (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)`);
+            seedDir = path.resolve(process.cwd(), "seeds");
             const seedFiles = await glob(`${seedDir}/*.ts`);
             const graph = new Map<string, { file: string; dependencies: string[] }>();
+            // Use POSIX absolute paths for import (fixes Windows bug)
+            function toImportPath(file: string) {
+                return path.resolve(file).replace(/\\/g, '/');
+            }
             for (const file of seedFiles) {
                 const name = path.basename(file, ".ts");
-                const mod = await import(file);
+                const mod = await import(toImportPath(file));
                 graph.set(name, { file, dependencies: mod.dependencies || [] });
             }
             const orderedSeeds = topologicalSort(graph);
-            const appliedSeeds = new Set((await orm.client.query<{ name: string }>(`SELECT name FROM seed_history`)).map(r => r.name));
+            
+            const appliedSeeds = new Set((await orm.client.query<{ name: string }>(`SELECT name FROM stabilize_seed_history`)).map(r => r.name));
             const pendingSeeds = orderedSeeds.filter(s => !appliedSeeds.has(s));
             if (pendingSeeds.length === 0) {
                 CLILogger.warn("No pending seeds to run.");
                 return;
             }
             spinner.start(`Running ${pendingSeeds.length} seed(s)...`);
+            
             for (const seedName of pendingSeeds) {
-                const mod = await import(graph.get(seedName)!.file);
+                const mod = await import(toImportPath(graph.get(seedName)!.file));
+                
                 await orm.transaction(async (txClient) => {
-                    const txOrm = new Stabilize(orm!.client.config, { enabled: false, ttl: 60 }, { level: LogLevel.Error });
-                    (txOrm as any).client = txClient; // Use the transactional client
-                    await mod.seed(txOrm);
-                    await txClient.query(`INSERT INTO seed_history (name, applied_at) VALUES (?, ?)`, [seedName, new Date().toISOString()]);
+                    const originalClient = orm!.client;
+                    orm!.client = txClient;
+                    await mod.seed(orm); 
+                    orm!.client = originalClient;
+                     const dbType = txClient.config.type; 
+                      const insertQuery = formatQuery(
+                        `INSERT INTO stabilize_seed_history (name, applied_at) VALUES (?, ?)`,
+                        dbType
+                      );
+                     await txClient.query(insertQuery, [seedName, new Date().toISOString()]);
                 });
             }
             spinner.stop(true, `Successfully applied ${pendingSeeds.length} seed(s).`);
         } catch (error) {
-            spinner.stop(false, "Seeding process failed.");
+            spinner.stop(false, `Seeding process failed. ${seedDir} Error: ${error}`);
             CLILogger.panic(error as Error, "seed");
         } finally {
             if (orm) await orm.close();
         }
     });
+    
 
 program
     .command("seed:rollback")
@@ -308,7 +329,7 @@ program
             const { orm: loadedOrm } = await loadConfig(options.config);
             orm = loadedOrm;
             spinner.start("Rolling back last seed...");
-            const [latest] = await orm!.client.query<{ name: string }>(`SELECT name FROM seed_history ORDER BY applied_at DESC, name DESC LIMIT 1`);
+            const [latest] = await orm!.client.query<{ name: string }>(`SELECT name FROM stabilize_seed_history ORDER BY applied_at DESC, name DESC LIMIT 1`);
             if (!latest) {
                 spinner.stop(false, "No seeds to roll back.");
                 return;
@@ -322,7 +343,7 @@ program
                 const txOrm = new Stabilize(orm!.client.config, { enabled: false, ttl: 60 }, { level: LogLevel.Error });
                 (txOrm as any).client = txClient; // Use the transactional client
                 await mod.rollback(txOrm);
-                await txClient.query(`DELETE FROM seed_history WHERE name = ?`, [latest.name]);
+                await txClient.query(`DELETE FROM stabilize_seed_history WHERE name = ?`, [latest.name]);
             });
             spinner.stop(true, `Rolled back seed: ${latest.name}`);
         } catch (error) {
@@ -338,34 +359,66 @@ program
 // --------------------------------------------------------------------------------------------------
 program
   .command("db:drop")
-  .description("Drop the database. USE WITH CAUTION.")
+  .description("Drop all tables in the database. USE WITH CAUTION. Does NOT drop the database itself.")
   .option("-c, --config <path>", "Path to db config file", "config/database.ts")
   .action(async (options) => {
     try {
-      const { config } = await loadConfig(options.config);
-      const dbName = new URL(config.connectionString).pathname.substring(1);
-      if (!await confirm(`This will permanently delete the '${dbName}' database. Are you sure?`)) {
-        CLILogger.warn("Database drop cancelled.");
+      const { orm, config } = await loadConfig(options.config);
+
+      let dbName: string;
+      if (config.type === DBType.SQLite) {
+        // For SQLite, connection string is the filename
+        dbName = config.connectionString;
+      } else {
+        // For Postgres/MySQL, parse from connection string
+        const url = new URL(config.connectionString);
+        dbName = url.pathname.substring(1);
+      }
+
+      if (!await confirm(`This will permanently delete ALL TABLES in the '${dbName}' database. Are you sure?`)) {
+        CLILogger.warn("Table drop cancelled.");
         return;
       }
-      spinner.start(`Dropping database '${dbName}'...`);
+
+      spinner.start(`Dropping all tables in database '${dbName}'...`);
+
       if (config.type === DBType.SQLite) {
-        await fs.unlink(dbName).catch(() => {});
-      } else {
-        const adminConfig = { ...config };
-        const url = new URL(adminConfig.connectionString);
-        url.pathname = config.type === DBType.Postgres ? '/postgres' : '';
-        adminConfig.connectionString = url.toString();
-        const adminOrm = new Stabilize(adminConfig);
-        await adminOrm.client.query(`DROP DATABASE IF EXISTS "${dbName}"`);
-        await adminOrm.close();
+        await orm.close();
+        // Give Windows time to release the lock
+        await new Promise(r => setTimeout(r, 5000));
+        const absPath = path.isAbsolute(dbName) ? dbName : path.resolve(process.cwd(), dbName);
+        console.log(`[DEBUG] Attempting to delete file: ${absPath}`);
+        try {
+          await fs.unlink(absPath);
+          console.log(`[DEBUG] Successfully deleted: ${absPath}`);
+        } catch (err) {
+          CLILogger.warn(`Failed to delete file '${absPath}': ${err}`);
+        }
+      } else if (config.type === DBType.Postgres) {
+        // Drop all tables in the public schema
+        const tables = await orm.client.query<{ tablename: string }>(
+          `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`
+        );
+        for (const { tablename } of tables) {
+          await orm.client.query(`DROP TABLE IF EXISTS "${tablename}" CASCADE`);
+        }
+      } else if (config.type === DBType.MySQL) {
+        // Drop all tables in the current database
+        const tables = await orm.client.query<{ table_name: string }>(
+          `SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()`
+        );
+        for (const { table_name } of tables) {
+          await orm.client.query(`DROP TABLE IF EXISTS \`${table_name}\``);
+        }
       }
-      spinner.stop(true, `Database '${dbName}' dropped successfully.`);
+      spinner.stop(true, `All tables dropped successfully from database '${dbName}'.`);
     } catch (error) {
-      spinner.stop(false, "Failed to drop database.");
+      spinner.stop(false, "Failed to drop tables.");
       CLILogger.panic(error as Error, "db:drop");
     }
   });
+
+
 
 program
   .command("db:reset")
@@ -393,13 +446,13 @@ program
     try {
       const { orm: loadedOrm } = await loadConfig(options.config);
       orm = loadedOrm;
-      await orm.client.query(`CREATE TABLE IF NOT EXISTS migrations (name TEXT PRIMARY KEY, applied_at TEXT)`);
-      await orm.client.query(`CREATE TABLE IF NOT EXISTS seed_history (name TEXT PRIMARY KEY, applied_at TEXT)`);
+      await orm.client.query(`CREATE TABLE IF NOT EXISTS stabilize_migrations (name TEXT PRIMARY KEY, applied_at TEXT)`);
+      await orm.client.query(`CREATE TABLE IF NOT EXISTS stabilize_seed_history (name TEXT PRIMARY KEY, applied_at TEXT)`);
 
       console.log(`\n${C.BRIGHT}Migration Status${C.RESET}`);
       console.log(`---------------------------------`);
       const migrationFiles = (await glob(`migrations/*.json`)).map(f => path.basename(f, ".json")).sort();
-      const appliedMigrations = new Set((await orm.client.query<{ name: string }>(`SELECT name FROM migrations`)).map(r => r.name));
+      const appliedMigrations = new Set((await orm.client.query<{ name: string }>(`SELECT name FROM stabilize_migrations`)).map(r => r.name));
       migrationFiles.forEach(name => {
         const status = appliedMigrations.has(name) ? `${C.BG_GREEN} APPLIED ${C.RESET}` : `${C.BG_YELLOW} PENDING ${C.RESET}`;
         console.log(`${status} ${C.WHITE}${name}${C.RESET}`);
@@ -409,7 +462,7 @@ program
       console.log(`\n${C.BRIGHT}Seed Status${C.RESET}`);
       console.log(`---------------------------------`);
       const seedFiles = (await glob(`seeds/*.ts`)).map(f => path.basename(f, ".ts")).sort();
-      const appliedSeeds = new Set((await orm.client.query<{ name: string }>(`SELECT name FROM seed_history`)).map(r => r.name));
+      const appliedSeeds = new Set((await orm.client.query<{ name: string }>(`SELECT name FROM stabilize_seed_history`)).map(r => r.name));
       seedFiles.forEach(name => {
         const status = appliedSeeds.has(name) ? `${C.BG_GREEN} APPLIED ${C.RESET}` : `${C.BG_YELLOW} PENDING ${C.RESET}`;
         console.log(`${status} ${C.WHITE}${name}${C.RESET}`);

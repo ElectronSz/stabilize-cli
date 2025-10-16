@@ -1,13 +1,13 @@
 {
   "name": "stabilize-cli",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "The official command-line interface for the Stabilize ORM",
   "author": "ElectronSz <lwazicd@icloud.com>",
   "license": "MIT",
   "type": "module",
   "private": false,
   "bin": {
-    "stabilize": "dist/index.js"
+    "stabilize-cli": "dist/stabilize-cli.js"
   },
   "files": [
     "dist",
@@ -15,9 +15,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun build ./index.ts --outdir ./dist --target bun --minify",
+    "build": "bun build ./stabilize-cli.ts --outdir ./dist --target bun --minify",
     "prepublishOnly": "bun run build",
-    "dev": "bun run --watch index.ts",
+    "dev": "bun run --watch stabilize-cli.ts",
     "format": "bunx prettier --write .",
     "lint": "bunx eslint ."
   },
@@ -25,7 +25,7 @@
     "commander": "^12.1.0",
     "dotenv": "^17.2.3",
     "glob": "^10.4.5",
-    "stabilize-orm": "^1.1.7"
+    "stabilize-orm": "^1.1.8"
   },
   "devDependencies": {
     "@types/bun": "latest",

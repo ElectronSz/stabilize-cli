@@ -376,7 +376,7 @@
 
     "sqlstring": ["sqlstring@2.3.3", "", {}, "sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg=="],
 
-    "stabilize-orm": ["stabilize-orm@1.1.7", "", { "dependencies": { "@types/pg": "^8.15.5", "@types/uuid": "^11.0.0", "commander": "^12.1.0", "figlet": "^1.9.3", "glob": "^11.0.0", "ioredis": "^5.4.1", "mysql2": "^3.15.2", "pg": "^8.16.3", "reflect-metadata": "^0.2.2", "uuid": "^13.0.0" }, "peerDependencies": { "bun": ">=1.0.0" }, "bin": { "stabilize": "dist/cli/stabilize-cli.js" } }, "sha512-r7GSytjRjDPN791tfbb6PrRaYkAo6LBnH8XQjLRNqzfI8etbTkN7f+0va0dm32q/temVPXnHsgFznClqWNcm6Q=="],
+    "stabilize-orm": ["stabilize-orm@1.1.8", "", { "dependencies": { "@types/pg": "^8.15.5", "@types/uuid": "^11.0.0", "commander": "^12.1.0", "figlet": "^1.9.3", "glob": "^11.0.0", "ioredis": "^5.4.1", "mysql2": "^3.15.2", "pg": "^8.16.3", "reflect-metadata": "^0.2.2", "uuid": "^13.0.0" }, "peerDependencies": { "bun": ">=1.0.0" }, "bin": { "stabilize": "dist/cli/stabilize-cli.js" } }, "sha512-cScQ3w751nDq949OlXwIh/i0PaZqKqVnEyxiac/zUHOmSZuaOKCKDsJkzH8km/9ZanTYzEhMPmJTumwZsi8VKQ=="],
 
     "standard-as-callback": ["standard-as-callback@2.1.0", "", {}, "sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A=="],
 
