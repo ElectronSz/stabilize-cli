@@ -1,7 +1,7 @@
 {
   "name": "stabilize-cli",
-  "version": "1.0.4",
-  "description": "The official command-line interface for the Stabilize ORM",
+  "version": "1.1.0",
+  "description": "Command-line interface for Stabilize ORM, providing tools for model generation, migrations, and seeding with programmatic model support",
   "author": "ElectronSz <lwazicd@icloud.com>",
   "license": "MIT",
   "type": "module",
@@ -15,33 +15,37 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun build ./stabilize-cli.ts --outdir ./dist --target bun --minify",
-    "prepublishOnly": "bun run build",
-    "dev": "bun run --watch stabilize-cli.ts",
-    "format": "bunx prettier --write .",
-    "lint": "bunx eslint ."
+    "build": "bun build src/stabilize-cli.ts --outdir dist --target bun --minify",
+    "build:exe": "bun build src/stabilize-cli.ts --compile --outfile dist/stabilize-cli --target bun",
+    "test": "bun test",
+    "prepublishOnly": "bun run build && bun run test",
+    "dev": "bun run src/stabilize-cli.ts",
+    "format": "bun run prettier --write .",
+    "lint": "bun run eslint src tests"
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "dotenv": "^17.2.3",
-    "glob": "^10.4.5",
+    "figlet": "^1.9.3",
+    "glob": "^11.0.0",
     "stabilize-orm": "^1.2.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "eslint": "^9.37.0",
-    "prettier": "^3.6.2",
-    "typescript": "^5.9.3"
+    "@types/bun": "^1.1.12",
+    "@typescript-eslint/eslint-plugin": "^8.7.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "eslint": "^9.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
   },
   "keywords": [
-    "orm",
     "cli",
-    "database",
+    "orm",
+    "bun",
     "migrations",
     "seeding",
-    "bun",
+    "typescript",
+    "database",
     "stabilize"
   ],
   "repository": {
