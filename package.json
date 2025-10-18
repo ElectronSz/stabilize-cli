@@ -15,11 +15,11 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun build src/stabilize-cli.ts --outdir dist --target bun --minify",
-    "build:exe": "bun build src/stabilize-cli.ts --compile --outfile dist/stabilize-cli --target bun",
+    "build": "bun build stabilize-cli.ts --outdir dist --target bun --minify",
+    "build:exe": "bun build stabilize-cli.ts --compile --outfile dist/stabilize-cli --target bun",
     "test": "bun test",
     "prepublishOnly": "bun run build && bun run test",
-    "dev": "bun run src/stabilize-cli.ts",
+    "dev": "bun run stabilize-cli.ts",
     "format": "bun run prettier --write .",
     "lint": "bun run eslint src tests"
   },
