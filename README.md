@@ -1,6 +1,6 @@
 # Stabilize ORM CLI
 
-<p align="center">
+<p align="cleftenter">
   <a href="https://www.npmjs.com/package/stabilize-cli"><img src="https://img.shields.io/npm/v/stabilize-cli.svg?label=version&color=blue" alt="NPM Version"></a>
   <a href="https://github.com/ElectronSz/stabilize-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/stabilize-cli.svg?color=green" alt="License"></a>
   <a href="https://github.com/ElectronSz/stabilize-orm"><img src="https://img.shields.io/badge/ORM-Stabilize%201.3.0-blue.svg" alt="Stabilize ORM"></a>
