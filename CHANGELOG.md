@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-19
+
+### Added
+- Universal seed history table initialization: CLI now creates `stabilize_seed_history` with a database-specific schema (`id` auto-increment primary key, string columns, and proper timestamp type) for MySQL, Postgres, and SQLite.
+- Auto-incrementing `id` column in seed history table for all databases.
+- Improved retry and error output for migration and seed failures.
+
+### Changed
+- MySQL migrations: All indexed or unique string columns (`name`, `username`, etc.) are now defined as `VARCHAR(n)` with a length, preventing key specification errors on `TEXT/BLOB` columns.
+- Migration generator and CLI logic now output MySQL-compatible datetime (`YYYY-MM-DD HH:MM:SS`) for all `DATETIME` columns. This fixes "Incorrect datetime value" errors during migration and seeding.
+- Seed and history writing logic uses MySQL-compatible datetime formatting for MySQL, and preserves ISO format for Postgres and SQLite.
+- Updated CLI seed command to use correct datetime formatting and schema initialization for all supported databases.
+- Improved transaction management, error handling, and cleanup in seed/migrate commands.
+
+### Fixed
+- Fixed MySQL error "BLOB/TEXT column 'name' used in key specification without a key length" by ensuring all indexed/unique string columns use `VARCHAR(n)` with explicit length.
+- Fixed MySQL error "Incorrect datetime value" when inserting into `DATETIME` columns by formatting all dates as `YYYY-MM-DD HH:MM:SS`.
+- Fixed table creation failures in seed history for MySQL by switching from `TEXT PRIMARY KEY` to `id INT AUTO_INCREMENT PRIMARY KEY` and `name VARCHAR(255) NOT NULL`.
+- Fixed transaction rollback scenarios to ensure proper resource cleanup and error reporting.
+
+---
+
 ## [1.1.0] - 2025-10-18
 
 ### Added
@@ -43,4 +65,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed transactional client creation in seed commands.
 
 ---
-*File last updated: 2025-10-18 20:32:00 UTC*
+*File last updated: 2025-10-19 13:46:29 UTC*
