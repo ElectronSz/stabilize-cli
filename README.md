@@ -1,9 +1,9 @@
 # Stabilize ORM CLI
 
-<p align="cleftenter">
+<p align="left">
   <a href="https://www.npmjs.com/package/stabilize-cli"><img src="https://img.shields.io/npm/v/stabilize-cli.svg?label=version&color=blue" alt="NPM Version"></a>
   <a href="https://github.com/ElectronSz/stabilize-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/stabilize-cli.svg?color=green" alt="License"></a>
-  <a href="https://github.com/ElectronSz/stabilize-orm"><img src="https://img.shields.io/badge/ORM-Stabilize%201.3.0-blue.svg" alt="Stabilize ORM"></a>
+  <a href="https://github.com/ElectronSz/stabilize-orm"><img src="https://img.shields.io/badge/ORM-Stabilize%202.1.0-blue.svg" alt="Stabilize ORM"></a>
 </p>
 
 **The official command-line interface for the [Stabilize ORM](https://github.com/ElectronSz/stabilize-orm).**
@@ -14,25 +14,23 @@
 
 ---
 
-## 🚀 Features
+## Features
 
-- **Code Generation**: Instantly scaffold new models, migrations, and seed files with a single command.
-- **Flexible Field Arguments for Models**: Pass column definitions as arguments to `generate model`, e.g., `name:string active:boolean`.
-- **Multi-Row Seeding**: Use `--count <number>` (or `-n <number>`) with `generate seed` to control how many seed rows are generated, using the model's schema.
-- **Schema Management**: Automatically generate database-specific SQL migrations from your existing models.
-- **Lifecycle Hooks Support**: Scaffold models with hooks defined in `ModelConfig` or as class methods for `beforeCreate`, `afterUpdate`, etc.
-- **Soft Deletes & Versioning**: Scaffold models with `softDelete` and `versioned` options for audit, rollback, and time-travel support.
-- **Database Tooling**: Run migrations, roll them back, and check their status against the database.
-- **Data Seeding with Dependencies**: Populate your database with test data, manage seed history, and respect dependencies between seed files.
-- **Cross-DB Compatibility**: Seed and migration history tables are now created with auto-increment `id` and proper string/timestamp types for MySQL, Postgres, and SQLite.
-- **Workflow Automation**: A powerful `db:reset` command to drop, migrate, and seed your database for a clean development slate, with a `--force` flag for non-interactive use.
-- **TypeScript & Modern Bun Support**: All files generated are TypeScript-first, designed for Bun runtimes.
+- **Code Generation**: Instantly scaffold new models, migrations, seed files, and REST API routes.
+- **Flexible Field Arguments**: Pass column definitions as arguments to `generate model`, e.g. `name:string active:boolean`.
+- **Multi-Row Seeding**: Use `--count <number>` with `generate seed` to control seed row count.
+- **Schema Management**: Auto-generate database-specific SQL migrations from models.
+- **Soft Deletes & Versioning**: Scaffold models with `softDelete` and `versioned` options.
+- **Database Backup & Restore**: Backup and restore your database with `db:backup` and `db:restore`.
+- **REST API Generation**: Generate full CRUD API scaffolds with `generate:api`.
+- **Fresh Migrations**: Drop and re-migrate with `migrate:fresh` (no seed).
+- **Database Size Analysis**: View table sizes and row counts with `db:size`.
+- **Cross-DB Compatibility**: Works with MySQL, PostgreSQL, and SQLite.
+- **TypeScript & Bun Support**: All generated files are TypeScript-first.
 
 ---
 
-## 📦 Installation
-
-For the best experience, install the CLI globally using your preferred package manager.
+## Installation
 
 ```bash
 # Using npm
@@ -42,101 +40,81 @@ npm install -g stabilize-cli
 bun add -g stabilize-cli
 ```
 
-After installation, the `stabilize-cli` command will be available in your terminal.
-
 ---
 
-## ✅ Prerequisites
+## Commands
 
-The Stabilize CLI is designed to work within a project that has `stabilize-orm@^1.3.0` installed and configured. It automatically looks for a `config/database.ts` file in your project's root directory to connect to the database.
-
----
-
-## 💻 Commands
-
-All commands are run using the `stabilize-cli` executable.
-
-| Command                            | Description                                                                 |
-| ---------------------------------- | --------------------------------------------------------------------------- |
-| `generate model <Name> [fields...]`         | Creates a new model file in `models/` with hooks, soft delete, and versioning. Pass column definitions as extra arguments (e.g. `name:string active:boolean`). |
-| `generate migration <ModelName>`   | Generates a new SQL migration from an existing model.                       |
-| `generate seed <SeedName>`         | Creates a new seed file in `seeds/`, based on the model schema. Use `--count <number>` or `-n <number>` to control number of rows. |
-| `migrate`                          | Applies all pending migrations to the database.                             |
-| `migrate:rollback`                 | Rolls back the most recently applied migration.                             |
-| `seed`                             | Runs all pending seed files, respecting dependencies.                       |
-| `seed:rollback`                    | Rolls back the most recently applied seed.                                  |
-| `status`                           | Shows the status (`APPLIED` or `PENDING`) of all migration and seed files.  |
-| `db:drop [--force]`                | Drops all tables in the database. Use `--force` to skip confirmation. **Use with caution.** |
-| `db:reset [--force]`               | Drops, migrates, and seeds the database. Use `--force` to skip confirmation. For development only. |
+| Command                             | Description                                     |
+| ----------------------------------- | ----------------------------------------------- |
+| `generate model <Name> [fields...]` | Create a new model file in `models/`            |
+| `generate migration <Name>`         | Generate a migration from a model               |
+| `generate seed <Name>`              | Generate a seed file. Use `--count <n>`         |
+| `generate api <Name>`               | Generate a REST API scaffold from a model       |
+| `migrate`                           | Apply all pending migrations                    |
+| `migrate:rollback`                  | Roll back the most recent migration             |
+| `migrate:fresh`                     | Drop all tables and re-run migrations           |
+| `seed`                              | Run all pending seed files                      |
+| `db:drop [--force]`                 | Drop all tables (use `--force` to skip confirm) |
+| `db:reset [--force]`                | Drop, migrate, and seed the database            |
+| `db:backup`                         | Backup the database to a timestamped file       |
+| `db:restore <file>`                 | Restore from a backup file                      |
+| `db:tables`                         | List all tables with row counts                 |
+| `db:size`                           | Show database and table size statistics         |
+| `status`                            | Show migration and seed status                  |
+| `health`                            | Check database and cache health                 |
+| `query <sql>`                       | Execute a raw SQL query                         |
+| `info`                              | Show CLI and environment information            |
 
 ### Command Examples
 
-**Generating a new `User` model with custom fields:**
+**Generate a User model:**
+
 ```bash
 stabilize-cli generate model User name:string active:boolean email:string
-# ✔ Success: Model generated: models/User.ts
 ```
 
-**Generating a seed file for `User` with 10 rows (uses model's schema):**
+**Generate a REST API scaffold:**
+
 ```bash
-stabilize-cli generate seed User --count 10
-# ✔ Success: Seed generated: seeds/20251019135400_User.ts
+stabilize-cli generate api User
+# Creates api/User.ts with full CRUD routes
 ```
 
-**Generating a migration from the `Product` model:**
+**Backup the database:**
+
 ```bash
-stabilize-cli generate migration Product
-# ✔ Success: Migration generated: migrations/20251018203000_create_product_table.json
+stabilize-cli db:backup
+# Creates backups/backup_20250101120000.db
 ```
 
-**Applying all pending migrations:**
+**Restore from backup:**
+
 ```bash
-stabilize-cli migrate
-# ✔ All pending migrations applied.
+stabilize-cli db:restore backups/backup_20250101120000.db --force
 ```
 
-**Applying all pending seeds:**
+**Fresh migration (drop + migrate):**
+
 ```bash
-stabilize-cli seed
-# ✔ Successfully applied 1 seed(s).
+stabilize-cli migrate:fresh --force
 ```
 
-**Resetting the database non-interactively:**
+**View database size:**
+
 ```bash
-stabilize-cli db:reset --force
-# ✔ Database reset complete.
+stabilize-cli db:size
+# Shows file size, table count, and row counts
 ```
 
-**Checking the status of your database:**
+**Check status:**
+
 ```bash
 stabilize-cli status
-
-# Migration Status
-# ---------------------------------
-# [ APPLIED ] 20251018203000_create_product_table
-#
-# Seed Status
-# ---------------------------------
-# [ PENDING ] 20251018203000_Product
 ```
 
 ---
 
-## 🧑‍💻 Advanced Usage
-
-### Model Generation with Hooks and Soft Delete
-
-By default, generated models include:
-- `versioned: true` for audit and time-travel support.
-- `softDelete: true` with a `deletedAt` column for soft deletes.
-- Lifecycle hooks defined in `ModelConfig` and as class methods.
-- **Custom columns**: Pass fields as arguments, e.g. `name:string isActive:boolean createdAt:date`.
-
-```bash
-stabilize-cli generate model Product name:string category:string price:numeric
-```
-
-## 📃 Project Documentation
+## Project Documentation
 
 - [Changelog](./CHANGELOG.md)
 - [Contributing Guide](./CONTRIBUTING.md)
@@ -147,21 +125,12 @@ stabilize-cli generate model Product name:string category:string price:numeric
 
 ---
 
-## 🤝 Contributing
+## License
 
-Contributions are welcome! Please read the [Contributing Guide](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
----
-
-## 📑 License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+MIT License - see [LICENSE](./LICENSE).
 
 ---
 
 <div align="center">
-
-Created with ❤️ by **ElectronSz**  
-<em>File last updated: 2025-10-19 13:59:00 UTC</em>
-
+Created by **ElectronSz**
 </div>
