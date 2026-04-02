@@ -1,6 +1,6 @@
 {
   "name": "stabilize-cli",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Command-line interface for Stabilize ORM — model generation, migrations, seeding, health checks, and database management",
   "author": "ElectronSz <lwazicd@icloud.com>",
   "license": "MIT",

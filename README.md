@@ -17,8 +17,8 @@
 ## Features
 
 - **Code Generation**: Instantly scaffold new models, migrations, seed files, and REST API routes.
-- **Flexible Field Arguments**: Pass column definitions as arguments to `generate model`, e.g. `name:string active:boolean`.
-- **Multi-Row Seeding**: Use `--count <number>` with `generate seed` to control seed row count.
+- **Flexible Field Arguments**: Pass column definitions as arguments to `generate:model`, e.g. `name:string active:boolean`.
+- **Multi-Row Seeding**: Use `--count <number>` with `generate:seed` to control seed row count.
 - **Schema Management**: Auto-generate database-specific SQL migrations from models.
 - **Soft Deletes & Versioning**: Scaffold models with `softDelete` and `versioned` options.
 - **Database Backup & Restore**: Backup and restore your database with `db:backup` and `db:restore`.
@@ -46,10 +46,10 @@ bun add -g stabilize-cli
 
 | Command                             | Description                                     |
 | ----------------------------------- | ----------------------------------------------- |
-| `generate model <Name> [fields...]` | Create a new model file in `models/`            |
-| `generate migration <Name>`         | Generate a migration from a model               |
-| `generate seed <Name>`              | Generate a seed file. Use `--count <n>`         |
-| `generate api <Name>`               | Generate a REST API scaffold from a model       |
+| `generate:model <Name> [fields...]` | Create a new model file in `models/`            |
+| `generate:migration <Name>`         | Generate a migration from a model               |
+| `generate:seed <Name>`              | Generate a seed file. Use `--count <n>`         |
+| `generate:api <Name>`               | Generate a REST API scaffold from a model       |
 | `migrate`                           | Apply all pending migrations                    |
 | `migrate:rollback`                  | Roll back the most recent migration             |
 | `migrate:fresh`                     | Drop all tables and re-run migrations           |
@@ -70,13 +70,13 @@ bun add -g stabilize-cli
 **Generate a User model:**
 
 ```bash
-stabilize-cli generate model User name:string active:boolean email:string
+stabilize-cli generate:model User name:string active:boolean email:string
 ```
 
 **Generate a REST API scaffold:**
 
 ```bash
-stabilize-cli generate api User
+stabilize-cli generate:api User
 # Creates api/User.ts with full CRUD routes
 ```
 
